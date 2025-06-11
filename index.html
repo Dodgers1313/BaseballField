@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,7 +5,8 @@
     <style>
         body { text-align: center; font-family: Arial; }
         canvas { border: 1px solid #000; margin-top: 20px; }
-        button { margin-top: 10px; padding: 5px 10px; }
+        button { margin: 5px; padding: 5px 10px; }
+        #status { font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -14,12 +14,14 @@
     <canvas id="field" width="600" height="600"></canvas>
     <br>
     <button onclick="resetPositions()">Reset Positions</button>
+    <button id="resetCutoffButton" onclick="resetCutoff()" style="display:none">Reset Cut-Off</button>
+    <div id="status">Select the Cut-Off</div>
 
     <script>
         const canvas = document.getElementById("field");
         const ctx = canvas.getContext("2d");
-        const fieldImg = new Image();
-        fieldImg.src = "field.png";
+        const statusDiv = document.getElementById("status");
+        const resetCutoffButton = document.getElementById("resetCutoffButton");
 
         const fielders = [
             {x: 299.5, y: 492.671875, label: "C"},
@@ -35,12 +37,38 @@
 
         const startPositions = fielders.map(f => ({x: f.x, y: f.y}));
         let dragging = null;
+        let cutoffIndex = null;
 
-        fieldImg.onload = () => draw();
+        function drawField() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.moveTo(300, 500);
+            ctx.lineTo(400, 400);
+            ctx.lineTo(300, 300);
+            ctx.lineTo(200, 400);
+            ctx.closePath();
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            [[300,500],[400,400],[300,300],[200,400]].forEach(([x,y]) => {
+                ctx.beginPath();
+                ctx.rect(x-5, y-5, 10, 10);
+                ctx.fillStyle = "black";
+                ctx.fill();
+            });
+
+            ctx.beginPath();
+            ctx.arc(300, 400, 5, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(300, 500, 300, Math.PI, 2*Math.PI);
+            ctx.stroke();
+        }
 
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(fieldImg, 0, 0, 600, 600);
+            drawField();
             
             fielders.forEach((f, i) => {
                 ctx.beginPath();
@@ -51,7 +79,7 @@
                 ctx.stroke();
             });
 
-            fielders.forEach(f => {
+            fielders.forEach((f, i) => {
                 ctx.beginPath();
                 ctx.arc(f.x, f.y, 8, 0, 2 * Math.PI);
                 ctx.fillStyle = "blue";
@@ -64,6 +92,12 @@
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.fillText(f.label, f.x, f.y);
+
+                if (cutoffIndex === i) {
+                    ctx.strokeStyle = "orange";
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(f.x - 10, f.y - 10, 20, 20);
+                }
             });
         }
 
@@ -72,19 +106,49 @@
                 f.x = startPositions[i].x;
                 f.y = startPositions[i].y;
             });
+            cutoffIndex = null;
+            updateStatus();
             draw();
+        }
+
+        function resetCutoff() {
+            cutoffIndex = null;
+            updateStatus();
+            draw();
+        }
+
+        function updateStatus() {
+            if (cutoffIndex === null) {
+                statusDiv.innerText = "Select the Cut-Off";
+                resetCutoffButton.style.display = "none";
+            } else {
+                statusDiv.innerText = "Cut-Off selected: " + fielders[cutoffIndex].label;
+                resetCutoffButton.style.display = "inline";
+            }
         }
 
         canvas.addEventListener("mousedown", (e) => {
             const rect = canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
             const my = e.clientY - rect.top;
-            
-            fielders.forEach((f, i) => {
-                const dx = mx - f.x;
-                const dy = my - f.y;
-                if (dx*dx + dy*dy < 64) dragging = i;
-            });
+
+            if (cutoffIndex === null) {
+                fielders.forEach((f, i) => {
+                    const dx = mx - f.x;
+                    const dy = my - f.y;
+                    if (dx*dx + dy*dy < 64) {
+                        cutoffIndex = i;
+                        updateStatus();
+                        draw();
+                    }
+                });
+            } else {
+                fielders.forEach((f, i) => {
+                    const dx = mx - f.x;
+                    const dy = my - f.y;
+                    if (dx*dx + dy*dy < 64) dragging = i;
+                });
+            }
         });
 
         canvas.addEventListener("mousemove", (e) => {
@@ -97,6 +161,9 @@
 
         canvas.addEventListener("mouseup", () => dragging = null);
         canvas.addEventListener("mouseleave", () => dragging = null);
+
+        updateStatus();
+        draw();
     </script>
 </body>
 </html>
