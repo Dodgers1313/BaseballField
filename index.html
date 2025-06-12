@@ -4,7 +4,7 @@
     <title>Baseball Field - Move Fielders</title>
     <style>
         body { text-align: center; font-family: Arial; }
-        canvas { border: 1px solid #000; margin-top: 20px; }
+        canvas { border: 1px solid #000; margin-top: 20px; background: url('field.png') no-repeat center center; background-size: contain; }
         button { margin: 5px; padding: 5px 10px; }
     </style>
 </head>
@@ -106,27 +106,6 @@
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.beginPath();
-            ctx.moveTo(300, 500);
-            ctx.lineTo(400, 400);
-            ctx.lineTo(300, 300);
-            ctx.lineTo(200, 400);
-            ctx.closePath();
-            ctx.strokeStyle = "black";
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            [[300,500],[400,400],[300,300],[200,400]].forEach(([x,y]) => {
-                ctx.beginPath();
-                ctx.rect(x-5, y-5, 10, 10);
-                ctx.fillStyle = "black";
-                ctx.fill();
-            });
-            ctx.beginPath();
-            ctx.arc(300, 400, 5, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(300, 500, 300, Math.PI, 2*Math.PI);
-            ctx.stroke();
             ctx.fillStyle = "black";
             ctx.textAlign = "center";
             ctx.font = cutoffIndex === null ? "italic 24px Arial" : "24px Arial";
