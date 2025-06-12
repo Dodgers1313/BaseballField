@@ -6,12 +6,11 @@
         body { text-align: center; font-family: Arial; }
         canvas { border: 1px solid #000; margin-top: 20px; }
         button { margin: 5px; padding: 5px 10px; }
-        #status { font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
     <h2>Move the Fielders</h2>
-    <button onclick="generateScenario()">Generate Scenario</button>
+    <button onclick="generateScenario()">Generate New Scenario</button>
     <div style="margin-top:10px">
         <div><strong>Runners:</strong> <span id="runnerLabel"></span></div>
         <div><strong>Where It's Hit:</strong> <span id="hitLabel"></span></div>
@@ -20,15 +19,16 @@
     <br>
     <button onclick="resetPositions()">Reset Positions</button>
     <button id="resetCutoffButton" onclick="resetCutoff()" style="display:none">Reset Cut-Off</button>
-    <div id="status">Select the Cut-Off</div>
 
     <script>
         const canvas = document.getElementById("field");
         const ctx = canvas.getContext("2d");
-        const statusDiv = document.getElementById("status");
         const resetCutoffButton = document.getElementById("resetCutoffButton");
         const runnerLabel = document.getElementById("runnerLabel");
         const hitLabel = document.getElementById("hitLabel");
+
+        const fieldImg = new Image();
+        fieldImg.src = "field.png";
 
         const scenarios = [
             { runners: "No One on Base", hit: "Single To Left" },
@@ -50,9 +50,6 @@
             { runners: "Runner on Third", hit: "Fly Ball To Left" },
             { runners: "Runner on Third", hit: "Fly Ball To Right" }
         ];
-
-        const fieldImg = new Image();
-        fieldImg.src = "field.png";
 
         function generateScenario() {
             const random = scenarios[Math.floor(Math.random() * scenarios.length)];
@@ -79,6 +76,16 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(fieldImg, 0, 0, 600, 600);
+
+            ctx.fillStyle = "black";
+            ctx.textAlign = "center";
+            if (cutoffIndex === null) {
+                ctx.font = "italic 24px Arial";
+                ctx.fillText("Select the Cut-Off", 300, 30);
+            } else {
+                ctx.font = "24px Arial";
+                ctx.fillText("Cut-Off: " + fielders[cutoffIndex].label, 300, 30);
+            }
 
             fielders.forEach((f, i) => {
                 ctx.beginPath();
@@ -119,24 +126,14 @@
                 f.y = startPositions[i].y;
             });
             cutoffIndex = null;
-            updateStatus();
+            resetCutoffButton.style.display = "none";
             draw();
         }
 
         function resetCutoff() {
             cutoffIndex = null;
-            updateStatus();
+            resetCutoffButton.style.display = "none";
             draw();
-        }
-
-        function updateStatus() {
-            if (cutoffIndex === null) {
-                statusDiv.innerText = "Select the Cut-Off";
-                resetCutoffButton.style.display = "none";
-            } else {
-                statusDiv.innerText = "Cut-Off selected: " + fielders[cutoffIndex].label;
-                resetCutoffButton.style.display = "inline";
-            }
         }
 
         canvas.addEventListener("mousedown", (e) => {
@@ -150,7 +147,7 @@
                     const dy = my - f.y;
                     if (dx*dx + dy*dy < 64) {
                         cutoffIndex = i;
-                        updateStatus();
+                        resetCutoffButton.style.display = "inline";
                         draw();
                     }
                 });
@@ -174,7 +171,7 @@
         canvas.addEventListener("mouseup", () => dragging = null);
         canvas.addEventListener("mouseleave", () => dragging = null);
 
-        updateStatus();
+        generateScenario();
     </script>
 </body>
 </html>
