@@ -147,6 +147,59 @@
             draw();
         }
 
+        canvas.addEventListener("mousedown", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            if (cutoffIndex === null) {
+                fielders.forEach((f, i) => {
+                    const dx = mx - f.x;
+                    const dy = my - f.y;
+                    if (dx*dx + dy*dy < 64) {
+                        cutoffIndex = i;
+                        resetCutoffButton.style.display = "inline";
+                        draw();
+                    }
+                });
+            } else {
+                fielders.forEach((f, i) => {
+                    const dx = mx - f.x;
+                    const dy = my - f.y;
+                    if (dx*dx + dy*dy < 64) dragging = i;
+                });
+            }
+        });
+
+        canvas.addEventListener("mousemove", (e) => {
+            if (dragging !== null) {
+                const rect = canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                fielders[dragging].x = mx;
+                fielders[dragging].y = my;
+                draw();
+            }
+        });
+
+        canvas.addEventListener("mouseup", () => {
+            dragging = null;
+        });
+
+        function resetPositions() {
+            fielders.forEach((f, i) => { f.x = startPositions[i].x; f.y = startPositions[i].y; });
+            cutoffIndex = null;
+            resetCutoffButton.style.display = "none";
+            gradingMode = false;
+            resultMessage.textContent = "";
+            draw();
+        }
+
+        function resetCutoff() {
+            cutoffIndex = null;
+            resetCutoffButton.style.display = "none";
+            draw();
+        }
+
         updateScenario();
     </script>
 </body>
