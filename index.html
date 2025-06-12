@@ -10,7 +10,8 @@
 </head>
 <body>
     <h2>Move the Fielders</h2>
-    <button onclick="generateScenario()">Generate New Scenario</button>
+    <button onclick="prevScenario()">Previous Scenario</button>
+    <button onclick="nextScenario()">Next Scenario</button>
     <div style="margin-top:10px">
         <div><strong>Runners:</strong> <span id="runnerLabel"></span></div>
         <div><strong>Where It's Hit:</strong> <span id="hitLabel"></span></div>
@@ -19,6 +20,8 @@
     <br>
     <button onclick="resetPositions()">Reset Positions</button>
     <button id="resetCutoffButton" onclick="resetCutoff()" style="display:none">Reset Cut-Off</button>
+    <button onclick="checkAnswer()">Check Answer</button>
+    <div id="resultMessage"></div>
 
     <script>
         const canvas = document.getElementById("field");
@@ -26,9 +29,12 @@
         const resetCutoffButton = document.getElementById("resetCutoffButton");
         const runnerLabel = document.getElementById("runnerLabel");
         const hitLabel = document.getElementById("hitLabel");
+        const resultMessage = document.getElementById("resultMessage");
 
-        const fieldImg = new Image();
-        fieldImg.src = "field.png";
+        let gradingMode = false;
+        let fielderColors = Array(9).fill("blue");
+        let dragging = null;
+        let cutoffIndex = null;
 
         const scenarios = [
             { runners: "No One on Base", hit: "Single To Left" },
@@ -51,11 +57,7 @@
             { runners: "Runner on Third", hit: "Fly Ball To Right" }
         ];
 
-        function generateScenario() {
-            const random = scenarios[Math.floor(Math.random() * scenarios.length)];
-            runnerLabel.textContent = random.runners;
-            hitLabel.textContent = random.hit;
-        }
+        let currentScenarioIndex = 0;
 
         const fielders = [
             {x: 299.5, y: 492.671875, label: "C"},
@@ -70,23 +72,65 @@
         ];
 
         const startPositions = fielders.map(f => ({x: f.x, y: f.y}));
-        let dragging = null;
-        let cutoffIndex = null;
+
+        const answerKey = {
+            0: [
+                {x: 299.5, y: 492.671875, r: 20, label: "C"},
+                {x: 300.5, y: 360.671875, r: 20, label: "P"},
+                {x: 411.5, y: 344.671875, r: 20, label: "1B"},
+                {x: 181.5, y: 338.671875, r: 20, label: "3B"},
+                {x: 375.5, y: 273.671875, r: 20, label: "2B"},
+                {x: 224.5, y: 267.671875, r: 20, label: "SS"},
+                {x: 139.5, y: 200.671875, r: 20, label: "LF"},
+                {x: 299.5, y: 158.671875, r: 20, label: "CF"},
+                {x: 466.5, y: 202.671875, r: 20, label: "RF"}
+            ]
+        };
+
+        function updateScenario() {
+            const scenario = scenarios[currentScenarioIndex];
+            runnerLabel.textContent = scenario.runners;
+            hitLabel.textContent = scenario.hit;
+            draw();
+        }
+
+        function nextScenario() {
+            currentScenarioIndex = (currentScenarioIndex + 1) % scenarios.length;
+            updateScenario();
+        }
+
+        function prevScenario() {
+            currentScenarioIndex = (currentScenarioIndex - 1 + scenarios.length) % scenarios.length;
+            updateScenario();
+        }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(fieldImg, 0, 0, 600, 600);
-
+            ctx.beginPath();
+            ctx.moveTo(300, 500);
+            ctx.lineTo(400, 400);
+            ctx.lineTo(300, 300);
+            ctx.lineTo(200, 400);
+            ctx.closePath();
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            [[300,500],[400,400],[300,300],[200,400]].forEach(([x,y]) => {
+                ctx.beginPath();
+                ctx.rect(x-5, y-5, 10, 10);
+                ctx.fillStyle = "black";
+                ctx.fill();
+            });
+            ctx.beginPath();
+            ctx.arc(300, 400, 5, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(300, 500, 300, Math.PI, 2*Math.PI);
+            ctx.stroke();
             ctx.fillStyle = "black";
             ctx.textAlign = "center";
-            if (cutoffIndex === null) {
-                ctx.font = "italic 24px Arial";
-                ctx.fillText("Select the Cut-Off", 300, 30);
-            } else {
-                ctx.font = "24px Arial";
-                ctx.fillText("Cut-Off: " + fielders[cutoffIndex].label, 300, 30);
-            }
-
+            ctx.font = cutoffIndex === null ? "italic 24px Arial" : "24px Arial";
+            ctx.fillText(cutoffIndex === null ? "Select the Cut-Off" : "Cut-Off: " + fielders[cutoffIndex]?.label, 300, 30);
             fielders.forEach((f, i) => {
                 ctx.beginPath();
                 ctx.moveTo(startPositions[i].x, startPositions[i].y);
@@ -94,84 +138,37 @@
                 ctx.strokeStyle = "red";
                 ctx.lineWidth = 1;
                 ctx.stroke();
-            });
-
-            fielders.forEach((f, i) => {
                 ctx.beginPath();
                 ctx.arc(f.x, f.y, 8, 0, 2 * Math.PI);
-                ctx.fillStyle = "blue";
+                ctx.fillStyle = gradingMode ? fielderColors[i] : "blue";
                 ctx.fill();
                 ctx.strokeStyle = "black";
                 ctx.stroke();
-
                 ctx.fillStyle = "white";
                 ctx.font = "10px Arial";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
                 ctx.fillText(f.label, f.x, f.y);
+            });
+        }
 
-                if (cutoffIndex === i) {
-                    ctx.strokeStyle = "orange";
-                    ctx.lineWidth = 3;
-                    ctx.strokeRect(f.x - 10, f.y - 10, 20, 20);
+        function checkAnswer() {
+            gradingMode = true;
+            let correct = true;
+            fielderColors = fielders.map((f, i) => {
+                const key = answerKey[currentScenarioIndex]?.find(c => c.label === f.label);
+                if (!key) return "red";
+                const dist = Math.hypot(f.x - key.x, f.y - key.y);
+                if (dist <= key.r + 4) {
+                    return "green";
+                } else {
+                    correct = false;
+                    return "red";
                 }
             });
-        }
-
-        fieldImg.onload = () => { draw(); };
-
-        function resetPositions() {
-            fielders.forEach((f, i) => {
-                f.x = startPositions[i].x;
-                f.y = startPositions[i].y;
-            });
-            cutoffIndex = null;
-            resetCutoffButton.style.display = "none";
+            resultMessage.textContent = correct ? "Correct!" : "Incorrect!";
             draw();
         }
 
-        function resetCutoff() {
-            cutoffIndex = null;
-            resetCutoffButton.style.display = "none";
-            draw();
-        }
-
-        canvas.addEventListener("mousedown", (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const mx = e.clientX - rect.left;
-            const my = e.clientY - rect.top;
-
-            if (cutoffIndex === null) {
-                fielders.forEach((f, i) => {
-                    const dx = mx - f.x;
-                    const dy = my - f.y;
-                    if (dx*dx + dy*dy < 64) {
-                        cutoffIndex = i;
-                        resetCutoffButton.style.display = "inline";
-                        draw();
-                    }
-                });
-            } else {
-                fielders.forEach((f, i) => {
-                    const dx = mx - f.x;
-                    const dy = my - f.y;
-                    if (dx*dx + dy*dy < 64) dragging = i;
-                });
-            }
-        });
-
-        canvas.addEventListener("mousemove", (e) => {
-            if (dragging == null) return;
-            const rect = canvas.getBoundingClientRect();
-            fielders[dragging].x = e.clientX - rect.left;
-            fielders[dragging].y = e.clientY - rect.top;
-            draw();
-        });
-
-        canvas.addEventListener("mouseup", () => dragging = null);
-        canvas.addEventListener("mouseleave", () => dragging = null);
-
-        generateScenario();
+        updateScenario();
     </script>
 </body>
 </html>
