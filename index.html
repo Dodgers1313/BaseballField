@@ -51,6 +51,9 @@
             { runners: "Runner on Third", hit: "Fly Ball To Right" }
         ];
 
+        const fieldImg = new Image();
+        fieldImg.src = "field.png";
+
         function generateScenario() {
             const random = scenarios[Math.floor(Math.random() * scenarios.length)];
             runnerLabel.textContent = random.runners;
@@ -73,37 +76,10 @@
         let dragging = null;
         let cutoffIndex = null;
 
-        function drawField() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.beginPath();
-            ctx.moveTo(300, 500);
-            ctx.lineTo(400, 400);
-            ctx.lineTo(300, 300);
-            ctx.lineTo(200, 400);
-            ctx.closePath();
-            ctx.strokeStyle = "black";
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            [[300,500],[400,400],[300,300],[200,400]].forEach(([x,y]) => {
-                ctx.beginPath();
-                ctx.rect(x-5, y-5, 10, 10);
-                ctx.fillStyle = "black";
-                ctx.fill();
-            });
-
-            ctx.beginPath();
-            ctx.arc(300, 400, 5, 0, 2 * Math.PI);
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.arc(300, 500, 300, Math.PI, 2*Math.PI);
-            ctx.stroke();
-        }
-
         function draw() {
-            drawField();
-            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(fieldImg, 0, 0, 600, 600);
+
             fielders.forEach((f, i) => {
                 ctx.beginPath();
                 ctx.moveTo(startPositions[i].x, startPositions[i].y);
@@ -134,6 +110,8 @@
                 }
             });
         }
+
+        fieldImg.onload = () => { draw(); };
 
         function resetPositions() {
             fielders.forEach((f, i) => {
@@ -197,7 +175,6 @@
         canvas.addEventListener("mouseleave", () => dragging = null);
 
         updateStatus();
-        draw();
     </script>
 </body>
 </html>
